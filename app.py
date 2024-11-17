@@ -3,8 +3,8 @@ import smtplib
 from email.mime.text import MIMEText
 from utils import *
 import os
-
-
+import asyncio
+import threading
 fail_msg = """<div style="text-align: center;">
 <h3>✨ 처리할수 없는 키워드 입니다. 다른 키워드로 부탁 드립니다 ✨</h3>"""
 # 이메일 전송 함수
@@ -15,25 +15,29 @@ def send_email(input1, input2, input3, email):
         check = make_vedio(input1, input2, input3)
 
         if check==-1:
-            return fail_msg
+            print("Make Vedio Error")
+            return -1
 
     check = merge_data(path)
     if check==-1:
-        return fail_msg
+        print("Merge data Error")
+        return -2
 
     check = email_send(path, email)
     if check==-1:
-        return fail_msg
+        print("Email Send Error")
+        return -1
     
-
-    return_msg = """<div style="text-align: center;">
-<h3>✨ 동영상 제작이 완료 되었습니다! 메일을 확인해 보세요~! ✨</h3>  
-    """
-    return return_msg
+    print("All process complete!")
 
 # Gradio 인터페이스 설정
 def process_inputs(input1, input2, input3, input4):
-    return send_email(input1, input2, input3, input4)
+    thread = threading.Thread(target=send_email, args=(input1, input2, input3, input4))
+    thread.start()
+    return_msg = """<div style="text-align: center;">
+<h3>✨ 이메일이 5분 뒤에 도착할 예정입니다! ✨</h3></div>"""
+    return return_msg
+
 
 # Gradio UI
 with gr.Blocks(css="#main-block {background-image: url('https://example.com/fairy-tale-bg.jpg'); background-size: cover;}") as app:
@@ -57,7 +61,17 @@ with gr.Blocks(css="#main-block {background-image: url('https://example.com/fair
     with gr.Row():
         label = gr.Markdown()
     send_button.click(process_inputs, inputs=[input1, input2, input3, output], outputs=label)
-
+    gr.HTML("""
+    <script>
+    const sendButton = document.getElementById('send-button');
+    sendButton.addEventListener('click', () => {
+        sendButton.disabled = true;
+        setTimeout(() => {
+            sendButton.disabled = false;
+        }, 10000); // 10초 후 버튼 활성화
+    });
+    </script>
+    """)
 # Launch
 app.launch(server_name="0.0.0.0", server_port=8080)
 
